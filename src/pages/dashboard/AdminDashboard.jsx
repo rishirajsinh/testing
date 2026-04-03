@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import students from '../../data/students';
 import teachers from '../../data/teachers';
@@ -50,11 +51,25 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleAddStudent = () => {
+  const API_URL = import.meta.env.PROD ? '/api' : 'http://localhost:5000/api';
+
+  const handleAddStudent = async () => {
     if (!newStudent.name || !newStudent.rollNo) return info('Please fill required fields');
-    success(`Successfully added ${newStudent.name} to the system!`);
-    setAddStudentModal(false);
-    setNewStudent({ name: '', class: '', rollNo: '', email: '', phone: '' });
+    try {
+      // Get the local storage token to authorize admin requests
+      const stored = localStorage.getItem('eduflow_user');
+      const token = stored ? JSON.parse(stored).token : null;
+      
+      await axios.post(`${API_URL}/students`, newStudent, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      success(`Successfully added ${newStudent.name} to the database!`);
+      setAddStudentModal(false);
+      setNewStudent({ name: '', class: '', rollNo: '', email: '', phone: '' });
+    } catch (err) {
+      info(err.response?.data?.message || 'Failed to add student to database');
+    }
   };
   const [announcements, setAnnouncements] = useState([
     { id: 1, title: 'Mid-Term Exam Schedule Released', content: 'Mid-term exams will be held from March 20-28.', target: 'all', date: '2026-03-10', reads: 42 },
